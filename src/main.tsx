@@ -5,17 +5,17 @@ import "./index.css";
 
 // import { logseq as PL } from "../package.json";
 import Gallery from "./Gallery";
-import { PageEntity,BlockEntity } from "@logseq/libs/dist/LSPlugin";
+import { PageEntity, BlockEntity } from "@logseq/libs/dist/LSPlugin";
 
-async function processPages(pages: (PageEntity | BlockEntity)[]):Promise<(PageEntity)[]> {
+async function processPages(pages: (PageEntity | BlockEntity)[]): Promise<(PageEntity)[]> {
   const processedPages = await Promise.all(pages.map(async (page) => {
 
     if (page.originalName == undefined) {
       // blockEntity has content field.
-      return {...(await logseq.Editor.getPage(page.page.id)),content:page.content} as PageEntity;
+      return { ...(await logseq.Editor.getPage(page.page.id)), content: page.content } as PageEntity;
     }
-    const file = await logseq.Editor.getPage(page?.file?.id || 1) || {content:""}
-    return {...page, content:file.content} as PageEntity;
+    const file = await logseq.Editor.getPage(page?.file?.id || 1) || { content: "" }
+    return { ...page, content: file.content } as PageEntity;
   }));
   return processedPages;
 }
@@ -24,13 +24,13 @@ function main() {
 
   logseq.provideModel({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    openPage (e: any) {
-      logseq.App.pushState('page',{name:e.dataset.onClickArgs})
+    openPage(e: any) {
+      logseq.App.pushState('page', { name: e.dataset.onClickArgs })
     }
-   })
-   
-  logseq.App.onMacroRendererSlotted(async ({ slot, payload}) => {
-    const [type,query,title] = payload.arguments
+  })
+
+  logseq.App.onMacroRendererSlotted(async ({ slot, payload }) => {
+    const [type, query, title, coverKey, tagsKey] = payload.arguments
 
     if (type !== ':gallery') return
 
@@ -42,13 +42,13 @@ function main() {
     const processPageSet = new Set(processPage.map((page) => page.id))
     const processPageArray = Array.from(processPageSet).map((id) => processPage.find((page) => page.id === id)) as PageEntity[]
 
-    
-    const html = renderToString(<Gallery pages={processPageArray} graphPath={graphPath} title={title}/>)
+
+    const html = renderToString(<Gallery pages={processPageArray} graphPath={graphPath} title={title} cover={coverKey} tags={tagsKey} />)
     logseq.provideUI({
-       key: `gallery-${payload.uuid}-${slot}`,
-       slot, 
-       reset: true,
-       template: html,
+      key: `gallery-${payload.uuid}-${slot}`,
+      slot,
+      reset: true,
+      template: html,
     })
   })
 }

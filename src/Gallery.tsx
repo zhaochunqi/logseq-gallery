@@ -9,7 +9,7 @@ function stringToDarkerColor(str: string): string {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   // 限制颜色的亮度和饱和度
   let color = '#';
   for (let i = 0; i < 3; i++) {
@@ -24,24 +24,26 @@ function stringToDarkerColor(str: string): string {
 
 // 示例
 
-function processCoverURL(rawCoverURL: string): string {
-  rawCoverURL = String(rawCoverURL).trim();
-  
+function processImageURL(rawImageURL: string): string {
+  rawImageURL = String(rawImageURL).trim();
+
   const markdownImageRegex = /!\[.*\]\((.*)\)/;
-  const matches = rawCoverURL.match(markdownImageRegex);
+  const matches = rawImageURL.match(markdownImageRegex);
   if (matches && matches.length > 1) {
-      return matches[1];
+    return matches[1];
   }
-  return rawCoverURL;
+  return rawImageURL;
 }
 import Markdown from 'react-markdown'
 
 interface NoteProps {
   page: PageEntity
-  graphPath:string
+  graphPath: string
+  cover: string
+  tags: string
 }
 
-const processMarkdown = (markdown:string|undefined) => {
+const processMarkdown = (markdown: string | undefined) => {
   if (!markdown) {
     return markdown
   }
@@ -58,29 +60,34 @@ const processMarkdown = (markdown:string|undefined) => {
   return markdown
 }
 
-const Tag = ({tag}:{tag:string}) => {
+const Tag = ({ tag }: { tag: string }) => {
   const color = stringToDarkerColor(tag)
   return (
     <div
       className="rounded-sm p-1 text-xs text-white"
-      style={{      
-        backgroundColor: color,      
+      style={{
+        backgroundColor: color,
       }}
     >{tag}</div>
   )
 }
 
 
-const Note = ({page,graphPath}:NoteProps) => {
-  const rawCoverURL = page.properties?.cover || page.properties?.banner || ""
+const Note = ({ page, graphPath, cover, tags }: NoteProps) => {
+  const rawImageURL = page.properties?.[cover] || "";
+
+  const imageURL = processImageURL(rawImageURL)
 
   // replace markdown image path to assert path if it is 
   // to judge if it is a markdown image path like ![xxx](path)
-  const propsBanner =  rawCoverURL.startsWith("http") ? rawCoverURL: encodeURI("assets://" + graphPath + processCoverURL(rawCoverURL).replace("..", ""))
+  const propsBanner = imageURL.startsWith("http") ? imageURL : encodeURI("assets://" + graphPath + imageURL.replace("..", ""))
 
   // check is file exist
 
   const markdown = processMarkdown(page.content)
+
+  const galleryTags = page.properties?.[tags] ? page.properties?.[tags] : page.properties?.tags ? page.properties?.tags : []
+
   return (
     <div className="whitespace-nowrap rounded-lg cursor-pointer overflow-hidden"
       style={{
@@ -97,24 +104,24 @@ const Note = ({page,graphPath}:NoteProps) => {
         }}
       >
         {
-          rawCoverURL && 
-          <img 
+          rawImageURL &&
+          <img
             style={{
               objectFit: "cover",
               height: `${HEIGHT}rem`,
               width: `${WIDTH}rem`,
             }}
             alt={page.name}
-            src={propsBanner} 
+            src={propsBanner}
           />
         }
         {
-          !rawCoverURL && markdown && (
+          !rawImageURL && markdown && (
             <div
-              style={{ 
+              style={{
                 position: 'absolute',
-                height: `${HEIGHT/0.4}rem`,
-                width: `${WIDTH/0.4}rem`,
+                height: `${HEIGHT / 0.4}rem`,
+                width: `${WIDTH / 0.4}rem`,
                 top: '0',
                 margin: '2px',
                 transform: `scale(0.4)`,
@@ -126,20 +133,20 @@ const Note = ({page,graphPath}:NoteProps) => {
           )
         }
         {
-          !rawCoverURL && !markdown && 
-            <div className="m-auto"
-              style={{
-                color: 'var(--ls-quaternary-text-color)',
-              }}
-            >No Cover</div>
+          !rawImageURL && !markdown &&
+          <div className="m-auto"
+            style={{
+              color: 'var(--ls-quaternary-text-color)',
+            }}
+          >No Cover</div>
         }
       </div>
-      <div 
+      <div
         className="flex flex-col h-full p-2 rounded-b-lg overflow-hidden"
         style={{
           backgroundColor: 'var(--ls-quaternary-background-color)'
         }}
-      > 
+      >
         <div className="flex gap-1">
           <div className="my-auto">{page.properties?.icon || `📄`}</div>
           <div className="my-auto page-ref truncate">{page.originalName || page.page.originalName}</div>
@@ -147,8 +154,8 @@ const Note = ({page,graphPath}:NoteProps) => {
 
         <div className="flex flex-wrap gap-2">
           {
-            page.properties?.tags?.map((tag:string)=>{
-              return <Tag key={tag} tag={tag}/>
+            galleryTags.map((tag: string) => {
+              return <Tag key={tag} tag={tag} />
             })
           }
         </div>
@@ -159,20 +166,24 @@ const Note = ({page,graphPath}:NoteProps) => {
 
 interface GalleryProps {
   pages: PageEntity[]
-  graphPath:string
+  graphPath: string
   title: string
+  cover: string
+  tags: string
 }
-function Gallery({pages,graphPath,title}:GalleryProps) {
+function Gallery({ pages, graphPath, title, cover, tags }: GalleryProps) {
   return (
     <main>
       <h3>{title}</h3>
       <div className="flex gap-4 flex-wrap">
         {
-          pages.map((page) => 
-            <Note 
+          pages.map((page) =>
+            <Note
               key={page.id}
               page={page}
               graphPath={graphPath}
+              cover={cover}
+              tags={tags}
             />)
         }
         {/* click here in to edit */}
@@ -182,7 +193,7 @@ function Gallery({pages,graphPath,title}:GalleryProps) {
       </div>
     </main>
   );
-  
+
 }
 
 export default Gallery;
